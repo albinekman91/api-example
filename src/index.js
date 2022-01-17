@@ -10,33 +10,78 @@ let users = {
   1: {
     id: '1',
     username: 'Albin Martinsson',
+    messageIds: [1],
   },
   2: {
     id: '2',
     username: 'David Öhlin',
+    messageIds: [2],
   },
 };
 
-const me = users[1];
+let messages = {
+  1: {
+    id: '1',
+    text: 'Hello World',
+    userId: '1',
+  },
+  2: {
+    id: '2',
+    text: 'By World',
+    userId: '2',
+  },
+};
 
 const schema = gql`
   type Query {
-    me: User
+    users: [User!]
     user(id: ID!): User
+    me: User
+
+    messages: [Message!]
+    message(id: ID!): Message
   }
+
   type User {
     id: ID!
     username: String!
+    messages: [Message!]
+  }
+
+  type Message {
+    id: ID!
+    text: String!
+    user: User!
   }
 `;
 
 const resolvers = {
   Query: {
-    me: () => {
-      return me;
+    users: () => {
+      return Object.values(users);
     },
     user: (parent, { id }) => {
       return users[id];
+    },
+    me: (parent, args, { me }) => {
+      return me;
+    },
+    messages: () => {
+      return Object.values(messages);
+    },
+    message: (parent, { id }) => {
+      return messages[id];
+    },
+  },
+
+  User: {
+    messages: (user) => {
+      return user.messageIds.map((messageId) => messages[messageId]);
+    },
+  },
+  Message: {
+    user: (parent) => {
+      return users[parent.userId];
     },
   },
 };
@@ -44,7 +89,11 @@ const resolvers = {
 //Initialize the server
 async function startApolloServer(typeDefs, resolvers) {
   //Define the server as an ApolloServer
-  const server = new ApolloServer({ typeDefs, resolvers });
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: { me: users[1] },
+  });
   const app = express();
   await server.start();
   server.applyMiddleware({ app, path: '/graphql' });
