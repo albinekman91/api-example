@@ -24,14 +24,9 @@ const resolvers = {
   },
 };
 
-//Define the server as an ApolloServer
-const server = new ApolloServer({
-  typeDefs: schema,
-  resolvers,
-});
-
 //Initialize the server
 async function startApolloServer(typeDefs, resolvers) {
+  //Define the server as an ApolloServer
   const server = new ApolloServer({ typeDefs, resolvers });
   const app = express();
   await server.start();
