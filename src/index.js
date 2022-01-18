@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { v4 as uuidv4 } from 'uuid';
 import express from 'express';
 import { ApolloServer, gql } from 'apollo-server-express';
 
@@ -37,9 +38,12 @@ const schema = gql`
     users: [User!]
     user(id: ID!): User
     me: User
-
     messages: [Message!]
     message(id: ID!): Message
+  }
+
+  type Mutation {
+    createMessage(text: String!): Message!
   }
 
   type User {
@@ -73,7 +77,22 @@ const resolvers = {
       return messages[id];
     },
   },
+  Mutation: {
+    createMessage: (parent, { text }, { me }) => {
+      const id = uuidv4();
+      const message = {
+        id,
+        text,
+        userId: me.id,
+      };
 
+      //Mutation side effect
+      messages[id] = message;
+      users[me.id].messageIds.push(id);
+
+      return message;
+    },
+  },
   User: {
     messages: (user) => {
       return user.messageIds.map((messageId) => messages[messageId]);
