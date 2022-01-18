@@ -1,9 +1,9 @@
 import cors from 'cors';
-import { v4 as uuidv4 } from 'uuid';
+import 'dotenv/config';
 import express from 'express';
 import { ApolloServer, gql } from 'apollo-server-express';
 
-import models from './models';
+import models, { sequelize } from './models';
 import schema from './schema';
 import resolvers from './resolvers';
 
@@ -17,17 +17,58 @@ async function startApolloServer(typeDefs, resolvers) {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: { models, me: models.users[1] },
+    context: async () => ({
+      models,
+      me: await models.User.findByLogin('rwieruch'),
+    }),
   });
   const app = express();
   await server.start();
   server.applyMiddleware({ app, path: '/graphql' });
 
-  app.listen({ port: 8000 }, () => {
-    console.log(
-      `Server is listening on port 8000 ${server.graphqlPath}`,
-    );
+  const eraseDatabaseOnSync = true;
+
+  sequelize.sync({ force: eraseDatabaseOnSync }).then(async () => {
+    if (eraseDatabaseOnSync) {
+      createUsersWithMessages();
+    }
+    app.listen({ port: 8000 }, () => {
+      console.log('Apollo Server on http://localhost:8000/graphql');
+    });
   });
+
+  const createUsersWithMessages = async () => {
+    await models.User.create(
+      {
+        username: 'rwieruch',
+        messages: [
+          {
+            text: 'Published the Road to learn React',
+          },
+        ],
+      },
+      {
+        include: [models.Message],
+      },
+    );
+
+    await models.User.create(
+      {
+        username: 'ddavids',
+        messages: [
+          {
+            text: 'Happy to release ...',
+          },
+          {
+            text: 'Published a complete ...',
+          },
+        ],
+      },
+      {
+        include: [models.Message],
+      },
+    );
+  };
 }
 
 startApolloServer(schema, resolvers);
