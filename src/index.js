@@ -19,9 +19,11 @@ async function startApolloServer(typeDefs, resolvers) {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
+    // Context makes data available to resolvers
     context: async () => ({
       models,
       me: await models.User.findByLogin('rwieruch'),
+      secret: process.env.SECRET,
     }),
   });
   const app = express();
