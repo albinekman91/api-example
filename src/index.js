@@ -1,7 +1,11 @@
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
+import {
+  ApolloServer,
+  AuthenticationError,
+} from 'apollo-server-express';
 
 import models, { sequelize } from './models';
 import schema from './schema';
@@ -13,6 +17,21 @@ const app = express();
 
 app.use(cors());
 
+const getMe = async (req) => {
+  const token = req.headers['x-token'];
+
+  if (token) {
+    try {
+      //JWT verifies the token, based on the token we know which user it is.
+      return await jwt.verify(token, process.env.SECRET);
+    } catch (e) {
+      throw new AuthenticationError(
+        'Your session expired. Sign in again.',
+      );
+    }
+  }
+};
+
 //Initialize the server
 async function startApolloServer(typeDefs, resolvers) {
   //Define the server as an ApolloServer
@@ -20,12 +39,16 @@ async function startApolloServer(typeDefs, resolvers) {
     typeDefs,
     resolvers,
     // Context makes data available to resolvers
-    context: async () => ({
-      models,
-      me: await models.User.findByLogin('rwieruch'),
-      secret: process.env.SECRET,
-    }),
+    context: async ({ req }) => {
+      const me = await getMe(req);
+      return {
+        models,
+        me,
+        secret: process.env.SECRET,
+      };
+    },
   });
+
   const app = express();
   await server.start();
   server.applyMiddleware({ app, path: '/graphql' });

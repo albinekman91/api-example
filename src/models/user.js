@@ -27,6 +27,9 @@ const user = (sequelize, DataTypes) => {
         len: [7, 42],
       },
     },
+    role: {
+      type: DataTypes.STRING,
+    },
   });
 
   //Use the beforeCreate hook to hash the password before it is saved to the database

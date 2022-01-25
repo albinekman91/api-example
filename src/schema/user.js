@@ -12,9 +12,11 @@ export default gql`
       username: String!
       email: String!
       password: String!
+      role: String!
     ): Token!
 
     signIn(login: String!, password: String!): Token!
+    deleteUser(id: ID!): Boolean!
   }
 
   type Token {
